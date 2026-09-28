@@ -17,10 +17,23 @@ It looks for the failure modes ordinary code review misses. A tool that shells o
 
 This plugin is honest about what it runs, because you should not have to read the source to find out.
 
-- On session start, it **downloads the pinned Trustabl CLI** from GitHub Releases into the plugin's own data directory. The download is checksum-verified against the release's `checksums.txt` and installed atomically. It is skipped when the binary is already present.
+- On session start, it **downloads the pinned Trustabl CLI** from GitHub Releases
+  (`github.com/trustabl/agent-reliability-analyzer`) into the plugin's own data
+  directory. The download is checksum-verified against the release's
+  `checksums.txt` and installed atomically. It is skipped when the binary is
+  already present.
 - **Scanning runs entirely on your machine.** There is no hosted scanner, no account, no source code upload, and no LLM in the analysis path.
-- **Rules are fetched at scan time** from a signed channel, so new detections arrive without upgrading the binary.
-- **Telemetry is opt-in and defaults to disabled.** When enabled it sends the command name, operating system, architecture and flags used. It never sends source code, file paths, repository names, or finding details.
+- **Rules are fetched at scan time** from a signed channel served from
+  `github.com/trustabl/agent-reliability-rules`, so new detections arrive
+  without upgrading the binary.
+- **Telemetry is opt-in and defaults to disabled.** When enabled, it sends the
+  command name, operating system, architecture and flags used to
+  `us.i.posthog.com`. It never sends source code, file paths, repository names,
+  or finding details. Retention is covered by the
+  [privacy policy](https://trustabl.ai/privacy).
+
+Those three are every destination the plugin contacts. Nothing else leaves your
+machine.
 
 The pinned CLI version is set in `scripts/lib-trustabl.sh`. Trustabl is Apache-2.0 licensed and its source is at
 [trustabl/agent-reliability-analyzer](https://github.com/trustabl/agent-reliability-analyzer).
