@@ -1,0 +1,53 @@
+# Trustabl for Claude
+
+Find and fix reliability and safety gaps in AI-agent code, without leaving Claude.
+
+Trustabl is a static analyzer for agent codebases. It inventories the agents, tools, subagents, skills and MCP servers in a repository, then evaluates each one against a versioned rule pack covering nine agent SDKs: Claude Agent SDK, OpenAI Agents SDK, Google ADK, MCP, LangChain, LangGraph, CrewAI, AutoGen AG2, Pydantic AI and Vercel AI.
+
+It looks for the failure modes ordinary code review misses. A tool that shells out and can be prompt-injected. An agent session with no turn limit. A tool that fetches a caller-controlled URL. A network call with no timeout.
+
+## What this plugin gives you
+
+- **`trustabl-scan` skill** — scans a repository and reports findings with severity, exact file and line, and a suggested fix
+- **`trustabl-enrich` skill** — takes findings further, proposing concrete replacements for the code it flags
+- **`trustabl` agent** — a subagent that runs the scan, review and apply loop end to end
+- **A bundled MCP server** — exposes the scan as a tool call, so Claude can scan on request
+
+## What it does on your machine
+
+This plugin is honest about what it runs, because you should not have to read the source to find out.
+
+- On session start, it **downloads the pinned Trustabl CLI** from GitHub Releases into the plugin's own data directory. The download is checksum-verified against the release's `checksums.txt` and installed atomically. It is skipped when the binary is already present.
+- **Scanning runs entirely on your machine.** There is no hosted scanner, no account, no source code upload, and no LLM in the analysis path.
+- **Rules are fetched at scan time** from a signed channel, so new detections arrive without upgrading the binary.
+- **Telemetry is opt-in and defaults to disabled.** When enabled it sends the command name, operating system, architecture and flags used. It never sends source code, file paths, repository names, or finding details.
+
+The pinned CLI version is set in `scripts/lib-trustabl.sh`. Trustabl is Apache-2.0 licensed and its source is at
+[trustabl/agent-reliability-analyzer](https://github.com/trustabl/agent-reliability-analyzer).
+
+## Requirements
+
+The install step needs `curl`, `tar`, and either `sha256sum` or `shasum`.
+
+**Automatic install covers macOS and Linux.** On Windows the plugin does not
+install the binary for you: install it yourself with `scoop install trustabl`,
+or download it from
+[Releases](https://github.com/trustabl/agent-reliability-analyzer/releases).
+The plugin uses whatever it finds and will not fail your session either way.
+
+Installing the CLI yourself works on any platform, with
+`brew install trustabl/tap/trustabl` or `scoop install trustabl`.
+
+## Reading the results
+
+Findings carry a severity from `critical` down to `info`, a confidence score, the exact file and line, and a written fix. A readiness score is computed across the surfaces found, so a repository with one bad tool out of fifty scores differently from one with one bad tool out of two.
+
+A finding is a weakness, not a proven exploit, and severity reflects the shape of the risk rather than a demonstrated attack. An empty result is not a pass: check the inventory counts first, because a high score over an empty inventory means nothing was analysed.
+
+## Privacy
+
+[Privacy policy](https://trustabl.ai/privacy) · privacy@trustabl.ai
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE).
