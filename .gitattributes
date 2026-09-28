@@ -1,0 +1,6 @@
+# Shell scripts must keep LF endings on every platform. Git's autocrlf default
+# on Windows rewrites them to CRLF at checkout, which leaves a carriage return
+# on the shebang: bash then looks for an interpreter named "bash\r" and the
+# hook and MCP server fail with "No such file or directory". The repository
+# blobs are already LF; this stops the checkout from changing them.
+*.sh -text
