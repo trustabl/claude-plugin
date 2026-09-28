@@ -9,6 +9,10 @@
   },
   "homepage": "https://trustabl.ai",
   "repository": "https://github.com/trustabl/claude-plugin",
+  "documentationUrl": "https://trustabl.ai/docs",
+  "supportUrl": "https://github.com/trustabl/claude-plugin/issues",
+  "privacyPolicyUrl": "https://trustabl.ai/privacy",
+  "termsOfServiceUrl": "https://trustabl.ai/terms",
   "license": "Apache-2.0",
   "keywords": [
     "security",
