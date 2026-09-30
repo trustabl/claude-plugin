@@ -40,16 +40,14 @@ The pinned CLI version is set in `scripts/lib-trustabl.sh`. Trustabl is Apache-2
 
 ## Requirements
 
-The install step needs `curl`, `tar`, and either `sha256sum` or `shasum`.
+Nothing beyond what Claude Code already provides. The MCP server launcher runs
+on Node and downloads and verifies the CLI itself. The session-start hook, which
+is a shell script, additionally uses `curl`, `tar` and `sha256sum` where those
+are available.
 
-**Automatic install covers macOS and Linux.** On Windows the plugin does not
-install the binary for you: install it yourself with `scoop install trustabl`,
-or download it from
-[Releases](https://github.com/trustabl/agent-reliability-analyzer/releases).
-The plugin uses whatever it finds and will not fail your session either way.
-
-Installing the CLI yourself works on any platform, with
-`brew install trustabl/tap/trustabl` or `scoop install trustabl`.
+**Automatic install covers macOS, Linux and Windows.** If you would rather
+install the CLI yourself, `brew install trustabl/tap/trustabl` or
+`scoop install trustabl` also work, and the plugin uses whatever it finds.
 
 ## Reading the results
 

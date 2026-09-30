@@ -2,7 +2,10 @@
   "mcpServers": {
     "trustabl": {
       "type": "stdio",
-      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/trustabl-mcp.sh"
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/scripts/trustabl-mcp.js"
+      ]
     }
   }
 }

@@ -137,7 +137,7 @@ by upgrading the dependency to the noted version.
 ## Installing the binary
 
 Normally you do not need to. The plugin installs the pinned CLI itself: the
-bundled MCP launcher (`scripts/trustabl-mcp.sh`) and the `SessionStart` hook
+bundled MCP launcher (`scripts/trustabl-mcp.js`) and the `SessionStart` hook
 (`scripts/check-trustabl.sh`) share install logic (`scripts/lib-trustabl.sh`)
 that downloads the pinned version, verifies it against the release
 `checksums.txt`, and installs it into the plugin's private data directory. That

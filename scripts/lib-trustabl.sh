@@ -1,6 +1,7 @@
 # shellcheck shell=bash
 # Shared install logic for the Trustabl plugin. Sourced by check-trustabl.sh
-# (the SessionStart hook) and trustabl-mcp.sh (the MCP server launcher).
+# (the SessionStart hook). The MCP server launcher is trustabl-mcp.js, which
+# is JavaScript so that it runs on Windows, where a bare .sh cannot.
 #
 # Every function writes diagnostics to STDERR only — never stdout — so this is
 # safe to source in the MCP launcher, whose stdout is the JSON-RPC protocol
