@@ -22,7 +22,7 @@ const zlib = require("zlib");
 const { spawn, spawnSync, execFileSync } = require("child_process");
 
 // Keep in step with scripts/lib-trustabl.sh and the README.
-const VERSION = "0.1.12";
+const VERSION = "0.1.13";
 const REPO = "trustabl/agent-reliability-analyzer";
 const HINT =
   "install with 'brew install trustabl/tap/trustabl' (macOS/Linux), " +
@@ -35,8 +35,14 @@ const log = (m) => process.stderr.write(`[trustabl] ${m}\n`);
 // the rest ship .tar.gz.
 function target() {
   const goos = { darwin: "darwin", linux: "linux", win32: "windows" }[os.platform()];
-  const goarch = { x64: "amd64", arm64: "arm64" }[os.arch()];
+  let goarch = { x64: "amd64", arm64: "arm64" }[os.arch()];
   if (!goos || !goarch) return null;
+  // There is no windows/arm64 asset — .goreleaser.yaml ignores that pair on
+  // purpose. Asking for one gets a 404, so auto-install gave up and fell back
+  // to PATH, which on a fresh ARM machine is nothing at all. Windows on ARM
+  // runs x64 under emulation, so the amd64 build is the right answer rather
+  // than a missing one.
+  if (goos === "windows" && goarch === "arm64") goarch = "amd64";
   return { goos, goarch, ext: goos === "windows" ? "zip" : "tar.gz" };
 }
 
