@@ -22,15 +22,15 @@ You are the Trustabl agent. You run the full Trustabl pipeline — scan, enrich,
 
 Ask the user which directory to scan if not clear from context. If they provided a path in their message, use it. Default to `.` (current working directory). Store the target in a variable called TARGET throughout this session.
 
-## Step 1 — Verify the CLI is installed
+## Step 1 — Get the CLI
 
-```bash
-"${TRUSTABL_BIN:-trustabl}" version
-```
+Run the "Get the CLI" block from the `trustabl-scan` skill. It installs the pinned, checksum-verified CLI if needed
+and prints `TRUSTABL_BIN=<path>`; use that path as `$TRUSTABL_BIN` in every later command (start each command with
+`TRUSTABL_BIN="<path>";`). If the user already has `trustabl` 0.1.15 or later on `PATH`, use that instead.
 
-If the command is not found, tell the user:
+If the block prints `install failed`, tell the user:
 
-> Trustabl is not available. The plugin installs it at session start; if that failed (offline, or no `curl` / `tar` / `unzip`), install it with `brew install trustabl/tap/trustabl` or `scoop install trustabl`, or download a release from https://github.com/trustabl/agent-reliability-analyzer/releases, then re-run.
+> Trustabl could not be installed automatically (offline, or no `curl` / `tar` / `unzip`). Install it with `brew install trustabl/tap/trustabl` or `scoop install trustabl`, or download a release from https://github.com/trustabl/agent-reliability-analyzer/releases, then re-run.
 
 Then stop.
 
@@ -45,7 +45,7 @@ Store the printed path for all subsequent steps.
 ## Step 3 — Scan the target
 
 ```bash
-"${TRUSTABL_BIN:-trustabl}" scan "$TARGET" --format json --output "$TRUSTABL_TMP/scan.json"; echo "exit:$?"
+"$TRUSTABL_BIN" scan "$TARGET" --format json --output "$TRUSTABL_TMP/scan.json"; echo "exit:$?"
 ```
 
 Handle the exit code:

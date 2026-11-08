@@ -7,7 +7,8 @@ Scan for agent reliability and safety weaknesses with Trustabl.
 
 Target: `$ARGUMENTS` when given, otherwise the current working directory.
 
-Run the scan with the Bash tool: `"${TRUSTABL_BIN:-trustabl}" scan <target> --format json`,
+Get the CLI with the block in the `trustabl-scan` skill ("Get the CLI"), then run the scan with the Bash tool:
+`"$TRUSTABL_BIN" scan <target> --format json`,
 where the target is `.` unless the user named a specific directory or a GitHub
 repository URL. On a big repository, write the JSON to a file and read that. If
 no binary resolves, say so and point to the install steps in the
