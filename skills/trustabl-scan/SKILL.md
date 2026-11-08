@@ -7,7 +7,7 @@ description: >-
   committing. Triggers on adding or editing an agent definition, a tool /
   @function_tool / @tool / tool() handler, a subagent markdown file, an MCP
   server registration, agent guardrails, or .claude/settings.json permissions.
-  Runs Trustabl's `scan` tool via the plugin's bundled MCP server and guides
+  Runs the plugin's pinned, checksum-verified Trustabl CLI and guides
   remediation of the findings.
 ---
 
@@ -47,41 +47,29 @@ NuGet, Composer, and Cargo.
 
 ## How to run the scan
 
-Scanning runs through this plugin's **bundled MCP server** (`trustabl`), which
-exposes a `scan` tool. Call the tool **`mcp__trustabl__scan`** with the path to
-the repo you just edited:
-
-- `mcp__trustabl__scan` with `{"path": "."}` — scan the current repo.
-- Optionally `{"path": ".", "rules_ref": "<branch-or-tag>"}` to pin the
-  detection-rules ref.
-- Optionally `{"path": ".", "vuln_scan": true}` to also match the repo's declared
-  dependencies against a pinned OSV database and report known CVEs as findings
-  (plus a structured `vulnerabilities[]` array). Off by default; the first use
-  downloads the OSV snapshot, then reuses the cache.
-
-The tool returns the full scan result as JSON — the same `ScanResult` shape as
-the CLI's `--format json` output, with a `findings` array to reason over. There
-is no exit code: decide what is actionable by reading finding **severities**
-(`medium` and above are commit-blockers; see "How to read findings"). The server
-fetches and caches the `agent-reliability-rules` pack itself, falling back to its local
-cache when offline.
-
-**CLI fallback.** If the `mcp__trustabl__scan` tool is not available this session
-(for example the MCP server failed to start), run the CLI directly with the
-resolved binary — `"$TRUSTABL_BIN"` when that variable is set, else `trustabl`
-on `PATH`:
+Run the plugin's CLI with the Bash tool. The `SessionStart` hook installs the
+pinned binary and exports it as `$TRUSTABL_BIN`; when that variable is empty,
+use `trustabl` on `PATH`:
 
 ```bash
-"$TRUSTABL_BIN" scan . --format json          # JSON, same shape the tool returns
-"$TRUSTABL_BIN" scan . --strict               # exit 1 on low+ findings (info/META never fail)
-"$TRUSTABL_BIN" scan . --detectors claude_sdk # claude_sdk|openai_sdk|google_adk|openshell|mcp|langchain|crewai|pydantic_ai|vercel_ai|autogen|claude_skill
-"$TRUSTABL_BIN" scan . --vuln-scan            # also match declared deps against OSV → CVE findings
-"$TRUSTABL_BIN" scan . --bom-out bom.json     # write a CycloneDX SBOM (+ VEX vulnerabilities under --vuln-scan)
+"${TRUSTABL_BIN:-trustabl}" scan . --format json          # full result as JSON (the ScanResult shape)
+"${TRUSTABL_BIN:-trustabl}" scan . --strict               # exit 1 on low+ findings (info/META never fail)
+"${TRUSTABL_BIN:-trustabl}" scan . --detectors claude_sdk # claude_sdk|openai_sdk|google_adk|openshell|mcp|langchain|crewai|pydantic_ai|vercel_ai|autogen|claude_skill
+"${TRUSTABL_BIN:-trustabl}" scan . --vuln-scan            # also match declared deps against OSV → CVE findings
+"${TRUSTABL_BIN:-trustabl}" scan . --bom-out bom.json     # write a CycloneDX SBOM (+ VEX vulnerabilities under --vuln-scan)
 ```
 
-In the CLI fallback the exit code is the gate: `0` = no findings of medium
-severity or higher, `1` = at least one, `2` = scanner/I-O error or no usable
-rules (run `"$TRUSTABL_BIN" rules pull` once to pre-populate the rules cache).
+Pass the repo you just edited (`.` for the current directory), or a GitHub
+repository URL when the user names one. `--format json` prints the full scan
+result with a `findings` array to reason over; on a big repository, write it to
+a file (`--format json > /tmp/trustabl-scan.json`) and read that, rather than
+flooding the conversation.
+
+The exit code is the gate: `0` = no findings of medium severity or higher,
+`1` = at least one, `2` = scanner/I-O error or no usable rules (run
+`"${TRUSTABL_BIN:-trustabl}" rules pull` once to pre-populate the rules cache).
+The scanner fetches and caches the `agent-reliability-rules` pack itself,
+falling back to its local cache when offline.
 
 ## How to read findings
 
@@ -117,7 +105,7 @@ different postures, so always fix the agent the finding names, not the repo as a
 whole.
 
 **Dependency vulnerabilities** (only when the scan ran with `--vuln-scan` or the
-`vuln_scan: true` tool arg): each known CVE in a declared, concretely-pinned
+`--vuln-scan` flag): each known CVE in a declared, concretely-pinned
 dependency is a finding whose `rule_id` is the advisory id (CVE / GHSA / PYSEC),
 located at the dependency's line in its manifest, with the fixed version in
 `suggested_fix`. They flow through the same severity gate as rule findings — fix
@@ -125,31 +113,29 @@ by upgrading the dependency to the noted version.
 
 ## Remediation loop
 
-1. Call `mcp__trustabl__scan` with `{"path": "."}` and read the `findings` array.
+1. Run `"${TRUSTABL_BIN:-trustabl}" scan . --format json` and read the `findings` array.
 2. For each finding of `medium` or higher, read its `explanation` and
    `suggested_fix` and apply the fix to the code (Trustabl will not edit files
    for you).
-3. Call the scan tool again and confirm the finding is gone from `findings`.
+3. Scan again and confirm the finding is gone from `findings`.
 4. Repeat until only `info` / `META` signals remain. For a stricter bar before
-   committing, treat `low` findings as blockers too (or use the CLI fallback's
-   `--strict`).
+   committing, treat `low` findings as blockers too (or use `--strict`).
 
 ## Installing the binary
 
 Normally you do not need to. The plugin installs the pinned CLI itself: the
-bundled MCP launcher (`scripts/trustabl-mcp.js`) and the `SessionStart` hook
-(`scripts/check-trustabl.sh`) share install logic (`scripts/lib-trustabl.sh`)
-that downloads the pinned version, verifies it against the release
-`checksums.txt`, and installs it into the plugin's private data directory. That
-one binary both backs the `mcp__trustabl__scan` server and is exposed as
-`$TRUSTABL_BIN` for direct CLI use. It installs only into the plugin's own data
-dir — never the user's system or their own `trustabl` — and is reversible.
+`SessionStart` hook (`scripts/check-trustabl.sh`, using `scripts/lib-trustabl.sh`)
+downloads the pinned version, verifies it against the release `checksums.txt`,
+installs it into the plugin's private data directory and exposes it as
+`$TRUSTABL_BIN`. It works on macOS, Linux and Windows (Git Bash). It installs
+only into the plugin's own data dir — never the user's system or their own
+`trustabl` — and is reversible.
 
 Auto-install is skipped only when it cannot run: offline on the very first
-session, an unsupported platform (e.g. native Windows without bash), or missing
-`curl` / `tar`. It then falls back to whatever `trustabl` is on `PATH`. If you
-see a `[trustabl] could not provide the trustabl CLI …` notice, or the
-`mcp__trustabl__scan` tool is missing and no binary resolves, offer to install it
+session, an unsupported platform, or missing `curl` / `tar` / `unzip`. It then
+falls back to whatever `trustabl` is on `PATH`. If you see a
+`[trustabl] could not provide the trustabl CLI …` notice and no binary
+resolves, offer to install it
 system-wide, **asking the user before you run any install command; never install
 silently**:
 

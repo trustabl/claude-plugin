@@ -11,7 +11,7 @@ It looks for the failure modes ordinary code review misses. A tool that shells o
 - **`trustabl-scan` skill** — scans a repository and reports findings with severity, exact file and line, and a suggested fix
 - **`trustabl-enrich` skill** — takes findings further, proposing concrete replacements for the code it flags
 - **`trustabl` agent** — a subagent that runs the scan, review and apply loop end to end
-- **A bundled MCP server** — exposes the scan as a tool call, so Claude can scan on request
+- **A pinned, checksum-verified CLI** — installed by the plugin itself, so Claude can scan on request
 
 ## What it does on your machine
 
@@ -40,10 +40,9 @@ The pinned CLI version is set in `scripts/lib-trustabl.sh`. Trustabl is Apache-2
 
 ## Requirements
 
-Nothing beyond what Claude Code already provides. The MCP server launcher runs
-on Node and downloads and verifies the CLI itself. The session-start hook, which
-is a shell script, additionally uses `curl`, `tar` and `sha256sum` where those
-are available.
+Nothing beyond what Claude Code already provides. The session-start hook, a
+shell script (Git Bash on Windows), downloads the pinned CLI and verifies it
+against the release checksums, using `curl`, `tar` or `unzip`, and `sha256sum`.
 
 **Automatic install covers macOS, Linux and Windows.** If you would rather
 install the CLI yourself, `brew install trustabl/tap/trustabl` or

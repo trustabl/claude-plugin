@@ -1,7 +1,7 @@
 {
   "name": "trustabl",
   "displayName": "agent-reliability-analyzer",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Self-audit AI agent, tool, and MCP-server code for security and reliability misconfigurations with Trustabl, the agent reliability scanner for the OpenAI Agents SDK, Claude Agent SDK, Google ADK, and MCP. Ships two skills (trustabl-scan and trustabl-enrich) and a subagent (trustabl) that together form a scan → enrich → review → apply pipeline.",
   "author": {
     "name": "Trustabl",
