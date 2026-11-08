@@ -35,14 +35,15 @@ This plugin is honest about what it runs, because you should not have to read th
 Those three are every destination the plugin contacts. Nothing else leaves your
 machine.
 
-The pinned CLI version is set in `scripts/lib-trustabl.sh`. Trustabl is Apache-2.0 licensed and its source is at
+The pinned CLI version is set in the install block of `skills/trustabl-scan/SKILL.md`. Trustabl is Apache-2.0 licensed and its source is at
 [trustabl/agent-reliability-analyzer](https://github.com/trustabl/agent-reliability-analyzer).
 
 ## Requirements
 
-Nothing beyond what Claude Code already provides. The session-start hook, a
-shell script (Git Bash on Windows), downloads the pinned CLI and verifies it
-against the release checksums, using `curl`, `tar` or `unzip`, and `sha256sum`.
+Nothing beyond what Claude Code already provides. The plugin ships no scripts:
+the first scan runs a short install block (Git Bash on Windows) that downloads
+the pinned CLI and verifies it against the release checksums, using `curl`,
+`tar` or `unzip`, and `sha256sum`, into `~/.trustabl/cli/`.
 
 **Automatic install covers macOS, Linux and Windows.** If you would rather
 install the CLI yourself, `brew install trustabl/tap/trustabl` or

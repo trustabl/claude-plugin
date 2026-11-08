@@ -47,16 +47,40 @@ NuGet, Composer, and Cargo.
 
 ## How to run the scan
 
-Run the plugin's CLI with the Bash tool. The `SessionStart` hook installs the
-pinned binary and exports it as `$TRUSTABL_BIN`; when that variable is empty,
-use `trustabl` on `PATH`:
+### Get the CLI
+
+The plugin ships no scripts. Run this block with the Bash tool: it downloads the pinned release from GitHub,
+checks it against the release's `checksums.txt` (a mismatch installs nothing), keeps it in `~/.trustabl/cli/`, and
+prints `TRUSTABL_BIN=<path>`. Later runs only check the version, so run it at the start of each session that uses
+Trustabl. Tell the user what it downloads the first time. If the user already has `trustabl` 0.1.15 or later on `PATH` (`trustabl version`), use that instead.
 
 ```bash
-"${TRUSTABL_BIN:-trustabl}" scan . --format json          # full result as JSON (the ScanResult shape)
-"${TRUSTABL_BIN:-trustabl}" scan . --strict               # exit 1 on low+ findings (info/META never fail)
-"${TRUSTABL_BIN:-trustabl}" scan . --detectors claude_sdk # claude_sdk|openai_sdk|google_adk|openshell|mcp|langchain|crewai|pydantic_ai|vercel_ai|autogen|claude_skill
-"${TRUSTABL_BIN:-trustabl}" scan . --vuln-scan            # also match declared deps against OSV → CVE findings
-"${TRUSTABL_BIN:-trustabl}" scan . --bom-out bom.json     # write a CycloneDX SBOM (+ VEX vulnerabilities under --vuln-scan)
+V=0.1.15; D="$HOME/.trustabl/cli/v$V"
+case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) OS=windows; EXT=zip; EXE=trustabl.exe ;; Darwin) OS=darwin; EXT=tar.gz; EXE=trustabl ;; *) OS=linux; EXT=tar.gz; EXE=trustabl ;; esac
+case "$(uname -m)" in arm64|aarch64) ARCH=arm64 ;; *) ARCH=amd64 ;; esac; [ "$OS" = windows ] && ARCH=amd64
+TRUSTABL_BIN="$D/$EXE"
+if ! "$TRUSTABL_BIN" version 2>/dev/null | head -n1 | grep -q "$V\$"; then
+  A="trustabl_${V}_${OS}_${ARCH}.$EXT"; U="https://github.com/trustabl/agent-reliability-analyzer/releases/download/v$V"; T="$(mktemp -d)"
+  curl -fsSL "$U/$A" -o "$T/$A" && curl -fsSL "$U/checksums.txt" -o "$T/checksums.txt" &&
+  SUM=sha256sum; command -v sha256sum >/dev/null || SUM="shasum -a 256"
+  (cd "$T" && L="$(grep " $A\$" checksums.txt)" && [ -n "$L" ] && echo "$L" | $SUM -c -) &&
+  mkdir -p "$D" && if [ "$EXT" = zip ]; then unzip -oq "$T/$A" -d "$D"; else tar -xzf "$T/$A" -C "$D"; fi &&
+  chmod +x "$TRUSTABL_BIN"; rm -rf "$T"
+fi
+if "$TRUSTABL_BIN" version 2>/dev/null | head -n1 | grep -q "$V\$"; then echo "TRUSTABL_BIN=$TRUSTABL_BIN"; else echo "install failed: see the message above"; fi
+```
+
+Shell state does not carry between Bash calls: start each later command with `TRUSTABL_BIN="<the printed path>";`.
+If the block prints `install failed`, show the user the message above it and stop.
+
+### Scan
+
+```bash
+"$TRUSTABL_BIN" scan . --format json          # full result as JSON (the ScanResult shape)
+"$TRUSTABL_BIN" scan . --strict               # exit 1 on low+ findings (info/META never fail)
+"$TRUSTABL_BIN" scan . --detectors claude_sdk # claude_sdk|openai_sdk|google_adk|openshell|mcp|langchain|crewai|pydantic_ai|vercel_ai|autogen|claude_skill
+"$TRUSTABL_BIN" scan . --vuln-scan            # also match declared deps against OSV → CVE findings
+"$TRUSTABL_BIN" scan . --bom-out bom.json     # write a CycloneDX SBOM (+ VEX vulnerabilities under --vuln-scan)
 ```
 
 Pass the repo you just edited (`.` for the current directory), or a GitHub
@@ -67,7 +91,7 @@ flooding the conversation.
 
 The exit code is the gate: `0` = no findings of medium severity or higher,
 `1` = at least one, `2` = scanner/I-O error or no usable rules (run
-`"${TRUSTABL_BIN:-trustabl}" rules pull` once to pre-populate the rules cache).
+`"$TRUSTABL_BIN" rules pull` once to pre-populate the rules cache).
 The scanner fetches and caches the `agent-reliability-rules` pack itself,
 falling back to its local cache when offline.
 
@@ -113,7 +137,7 @@ by upgrading the dependency to the noted version.
 
 ## Remediation loop
 
-1. Run `"${TRUSTABL_BIN:-trustabl}" scan . --format json` and read the `findings` array.
+1. Run `"$TRUSTABL_BIN" scan . --format json` and read the `findings` array.
 2. For each finding of `medium` or higher, read its `explanation` and
    `suggested_fix` and apply the fix to the code (Trustabl will not edit files
    for you).
@@ -121,23 +145,12 @@ by upgrading the dependency to the noted version.
 4. Repeat until only `info` / `META` signals remain. For a stricter bar before
    committing, treat `low` findings as blockers too (or use `--strict`).
 
-## Installing the binary
+## If the CLI cannot be installed
 
-Normally you do not need to. The plugin installs the pinned CLI itself: the
-`SessionStart` hook (`scripts/check-trustabl.sh`, using `scripts/lib-trustabl.sh`)
-downloads the pinned version, verifies it against the release `checksums.txt`,
-installs it into the plugin's private data directory and exposes it as
-`$TRUSTABL_BIN`. It works on macOS, Linux and Windows (Git Bash). It installs
-only into the plugin's own data dir — never the user's system or their own
-`trustabl` — and is reversible.
-
-Auto-install is skipped only when it cannot run: offline on the very first
-session, an unsupported platform, or missing `curl` / `tar` / `unzip`. It then
-falls back to whatever `trustabl` is on `PATH`. If you see a
-`[trustabl] could not provide the trustabl CLI …` notice and no binary
-resolves, offer to install it
-system-wide, **asking the user before you run any install command; never install
-silently**:
+The "Get the CLI" block is the normal path. It fails only when it cannot run:
+offline on first use, or no `curl` and `tar` / `unzip`. Then offer to install
+Trustabl system-wide, **asking the user before you run any install command;
+never install silently**:
 
 ```bash
 # macOS / Linux (Homebrew)
@@ -152,5 +165,5 @@ docker run --rm -v "$PWD:/repo" ghcr.io/trustabl/trustabl:latest scan /repo
 ```
 
 Prebuilt archives for each platform are on the GitHub Releases page
-(https://github.com/trustabl/agent-reliability-analyzer/releases). Confirm the install with
-`trustabl version`.
+(https://github.com/trustabl/agent-reliability-analyzer/releases). Confirm the
+install with `trustabl version`, then use `trustabl` in place of `"$TRUSTABL_BIN"`.

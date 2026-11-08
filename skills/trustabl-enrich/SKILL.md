@@ -35,7 +35,7 @@ All three formats produced by the Trustabl CLI are accepted. The skill detects t
 | SARIF 2.1.0 | `trustabl scan --format sarif` |
 | Plain text | paste terminal output directly |
 
-> When you run `trustabl scan` yourself (e.g. to produce input, or to re-verify at the end), resolve the binary the way the **trustabl-scan** skill does: prefer `"$TRUSTABL_BIN"`, then the plugin-managed path reported by the Trustabl `SessionStart` check this session, then `trustabl` on `PATH`.
+> When you run `trustabl scan` yourself (e.g. to produce input, or to re-verify at the end), resolve the binary the way the **trustabl-scan** skill does: the "Get the CLI" block prints `TRUSTABL_BIN=<path>`; use that, or `trustabl` on `PATH`.
 
 If the input cannot be parsed or contains zero findings, report clearly and stop — do not proceed to enrichment.
 
