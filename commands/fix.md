@@ -11,9 +11,9 @@ above.
 
 Work in this order:
 
-1. **Scan first** with the `mcp__trustabl__scan` tool, following the same rule
-   as `/trustabl:scan`: send no `path` for the current directory, and pass one
-   only when the user named a target.
+1. **Scan first**, the same way as `/trustabl:scan`:
+   `"${TRUSTABL_BIN:-trustabl}" scan <target> --format json`, with `.` unless the
+   user named a target.
 2. **Check the inventory** before touching anything. If the tool and agent
    counts look wrong, stop and say so. Applying fixes from a scan that was
    pointed at the wrong place is worse than doing nothing.

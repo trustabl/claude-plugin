@@ -7,11 +7,11 @@ Scan for agent reliability and safety weaknesses with Trustabl.
 
 Target: `$ARGUMENTS` when given, otherwise the current working directory.
 
-Run the scan through the `mcp__trustabl__scan` tool. When the target is the
-current directory, send no `path` argument at all rather than guessing one: the
-server scans where it is running, and inside a container a path from this
-machine does not exist. Pass `path` only when the user named a specific
-directory or a GitHub repository URL.
+Run the scan with the Bash tool: `"${TRUSTABL_BIN:-trustabl}" scan <target> --format json`,
+where the target is `.` unless the user named a specific directory or a GitHub
+repository URL. On a big repository, write the JSON to a file and read that. If
+no binary resolves, say so and point to the install steps in the
+`trustabl-scan` skill.
 
 Then report what came back:
 

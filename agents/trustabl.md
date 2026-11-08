@@ -25,12 +25,12 @@ Ask the user which directory to scan if not clear from context. If they provided
 ## Step 1 — Verify the CLI is installed
 
 ```bash
-trustabl version
+"${TRUSTABL_BIN:-trustabl}" version
 ```
 
 If the command is not found, tell the user:
 
-> Trustabl is not installed. Download the latest release from https://github.com/trustabl/agent-reliability-analyzer and make sure the binary is in your PATH, then re-run.
+> Trustabl is not available. The plugin installs it at session start; if that failed (offline, or no `curl` / `tar` / `unzip`), install it with `brew install trustabl/tap/trustabl` or `scoop install trustabl`, or download a release from https://github.com/trustabl/agent-reliability-analyzer/releases, then re-run.
 
 Then stop.
 
@@ -45,7 +45,7 @@ Store the printed path for all subsequent steps.
 ## Step 3 — Scan the target
 
 ```bash
-trustabl scan "$TARGET" --format json --output "$TRUSTABL_TMP/scan.json"; echo "exit:$?"
+"${TRUSTABL_BIN:-trustabl}" scan "$TARGET" --format json --output "$TRUSTABL_TMP/scan.json"; echo "exit:$?"
 ```
 
 Handle the exit code:
