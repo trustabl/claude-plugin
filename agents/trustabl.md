@@ -26,7 +26,7 @@ Ask the user which directory to scan if not clear from context. If they provided
 
 Run the "Get the CLI" block from the `trustabl-scan` skill. It installs the pinned, checksum-verified CLI if needed
 and prints `TRUSTABL_BIN=<path>`; use that path as `$TRUSTABL_BIN` in every later command (start each command with
-`TRUSTABL_BIN="<path>";`). If the user already has `trustabl` 0.1.15 or later on `PATH`, use that instead.
+`TRUSTABL_BIN="<path>";`). If the user already has `trustabl` 0.1.16 or later on `PATH`, use that instead.
 
 If the block prints `install failed`, tell the user:
 
