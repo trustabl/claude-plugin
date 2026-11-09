@@ -1,0 +1,87 @@
+# Opens a pull request when the analyzer publishes a release newer than the one
+# the trustabl-scan skill pins.
+#
+# This exists because the alternative is remembering. The plugin sat pinned to
+# 0.1.12 after 0.1.13 shipped, and nothing surfaced it: the plugin kept
+# working, just on an old engine. A pull request is the cheapest thing that
+# makes the gap visible without taking the choice away: nothing ships until a
+# human merges it.
+#
+# The pull request also bumps the plugin's patch version, because the Claude
+# Directory only picks up a change when the version changes.
+name: engine-bump
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'     # Mondays, 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CURRENT=$(sed -n 's/^V=\([0-9][0-9.]*\);.*/\1/p' skills/trustabl-scan/SKILL.md)
+          [ -n "$CURRENT" ] || { echo "::error::no V=<version>; line in skills/trustabl-scan/SKILL.md"; exit 1; }
+          RELEASE=$(gh api repos/trustabl/agent-reliability-analyzer/releases/latest)
+          LATEST=$(echo "$RELEASE" | jq -r '.tag_name | ltrimstr("v")')
+          HAS_SUMS=$(echo "$RELEASE" | jq -r 'any(.assets[]; .name == "checksums.txt")')
+          echo "Pinned $CURRENT, latest $LATEST (checksums.txt published: $HAS_SUMS)"
+          BUMP=false
+          # Only a newer release, and only once its checksums.txt is up: the
+          # skill's install block refuses a release without one.
+          if [ "$LATEST" != "$CURRENT" ] && [ "$HAS_SUMS" = true ] &&
+             [ "$(printf '%s\n%s\n' "$CURRENT" "$LATEST" | sort -V | tail -n1)" = "$LATEST" ]; then
+            BUMP=true
+          fi
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST"   >> "$GITHUB_OUTPUT"
+          echo "bump=$BUMP"       >> "$GITHUB_OUTPUT"
+      - id: bump
+        name: Bump the pin and the plugin version
+        if: steps.versions.outputs.bump == 'true'
+        env:
+          LATEST: ${{ steps.versions.outputs.latest }}
+        run: |
+          V='[0-9]+\.[0-9]+\.[0-9]+'
+          sed -i -E "s/^V=$V;/V=$LATEST;/; s/\`trustabl\` $V or later/\`trustabl\` $LATEST or later/" skills/trustabl-scan/SKILL.md
+          sed -i -E "s/\`trustabl\` $V or later/\`trustabl\` $LATEST or later/" agents/trustabl.md
+          PLUGIN=$(node -e '
+            const fs = require("fs");
+            const f = ".claude-plugin/plugin.json";
+            let next;
+            const text = fs.readFileSync(f, "utf8").replace(/("version":\s*")(\d+)\.(\d+)\.(\d+)(")/, (m, a, x, y, z, b) => {
+              next = `${x}.${y}.${Number(z) + 1}`;
+              return a + next + b;
+            });
+            if (!next) throw new Error(`no x.y.z version in ${f}`);
+            fs.writeFileSync(f, text);
+            console.log(next);
+          ')
+          echo "plugin=$PLUGIN" >> "$GITHUB_OUTPUT"
+          git diff --stat
+      - uses: peter-evans/create-pull-request@v7
+        if: steps.versions.outputs.bump == 'true'
+        with:
+          branch: chore/analyzer-${{ steps.versions.outputs.latest }}
+          title: "chore(deps): pin the analyzer to ${{ steps.versions.outputs.latest }}"
+          commit-message: "chore(deps): pin the analyzer to ${{ steps.versions.outputs.latest }}"
+          body: |
+            The analyzer released `${{ steps.versions.outputs.latest }}`; the trustabl-scan skill pins
+            `${{ steps.versions.outputs.current }}`.
+
+            This pull request moves the pin in `skills/trustabl-scan/SKILL.md` (the install block
+            still checks the download against the release's `checksums.txt`), the "or later" text
+            there and in `agents/trustabl.md`, and bumps the plugin to
+            `${{ steps.bump.outputs.plugin }}` so the Claude Directory picks the change up.
+
+            Merging to main is what ships the new plugin version. Read the analyzer's release notes first: a
+            release that changes scan output may need the skills updating in the same pull request.
