@@ -52,20 +52,25 @@ jobs:
           LATEST: ${{ steps.versions.outputs.latest }}
         run: |
           V='[0-9]+\.[0-9]+\.[0-9]+'
-          sed -i -E "s/^V=$V;/V=$LATEST;/; s/\`trustabl\` $V or later/\`trustabl\` $LATEST or later/" skills/trustabl-scan/SKILL.md
-          sed -i -E "s/\`trustabl\` $V or later/\`trustabl\` $LATEST or later/" agents/trustabl.md
-          PLUGIN=$(node -e '
-            const fs = require("fs");
-            const f = ".claude-plugin/plugin.json";
-            let next;
-            const text = fs.readFileSync(f, "utf8").replace(/("version":\s*")(\d+)\.(\d+)\.(\d+)(")/, (m, a, x, y, z, b) => {
-              next = `${x}.${y}.${Number(z) + 1}`;
-              return a + next + b;
-            });
-            if (!next) throw new Error(`no x.y.z version in ${f}`);
-            fs.writeFileSync(f, text);
-            console.log(next);
-          ')
+          # The repository root and agent-reliability-analyzer/ hold the same plugin
+          # under two Claude Directory listings: keep both pins and versions in step.
+          for d in . agent-reliability-analyzer; do
+            sed -i -E "s/^V=$V;/V=$LATEST;/; s/\`trustabl\` $V or later/\`trustabl\` $LATEST or later/" "$d/skills/trustabl-scan/SKILL.md"
+            sed -i -E "s/\`trustabl\` $V or later/\`trustabl\` $LATEST or later/" "$d/agents/trustabl.md"
+            NEXT=$(F="$d/.claude-plugin/plugin.json" node -e '
+              const fs = require("fs");
+              const f = process.env.F;
+              let next;
+              const text = fs.readFileSync(f, "utf8").replace(/("version":\s*")(\d+)\.(\d+)\.(\d+)(")/, (m, a, x, y, z, b) => {
+                next = `${x}.${y}.${Number(z) + 1}`;
+                return a + next + b;
+              });
+              if (!next) throw new Error(`no x.y.z version in ${f}`);
+              fs.writeFileSync(f, text);
+              console.log(next);
+            ')
+            if [ "$d" = . ]; then PLUGIN=$NEXT; fi
+          done
           echo "plugin=$PLUGIN" >> "$GITHUB_OUTPUT"
           git diff --stat
       - uses: peter-evans/create-pull-request@v7
@@ -78,7 +83,8 @@ jobs:
             The analyzer released `${{ steps.versions.outputs.latest }}`; the trustabl-scan skill pins
             `${{ steps.versions.outputs.current }}`.
 
-            This pull request moves the pin in `skills/trustabl-scan/SKILL.md` (the install block
+            This pull request moves the pin in `skills/trustabl-scan/SKILL.md` and its copy in
+            `agent-reliability-analyzer/` (the install block
             still checks the download against the release's `checksums.txt`), the "or later" text
             there and in `agents/trustabl.md`, and bumps the plugin to
             `${{ steps.bump.outputs.plugin }}` so the Claude Directory picks the change up.
