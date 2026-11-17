@@ -1,0 +1,16 @@
+{
+  "name": "agent-reliability-skills",
+  "displayName": "agent-reliability-skills",
+  "version": "0.1.0-rc.5",
+  "description": "Generates a pre-coding reliability skill (SKILL.md) for your agent repository from Trustabl's detection rules, so Claude applies them while it writes code. No API key needed.",
+  "homepage": "https://trustabl.ai",
+  "repository": "https://github.com/trustabl/agent-reliability-skills",
+  "author": { "name": "Trustabl", "url": "https://trustabl.ai", "email": "eng@trustabl.ai" },
+  "license": "Apache-2.0",
+  "keywords": ["agents", "reliability", "skills", "claude-code", "agent-sdk"],
+  "icon": "./assets/logo.png",
+  "documentationUrl": "https://github.com/trustabl/agent-reliability-skills/tree/main/claude-plugin#readme",
+  "supportUrl": "https://github.com/trustabl/agent-reliability-skills/issues",
+  "privacyPolicyUrl": "https://github.com/trustabl/agent-reliability-skills/blob/main/claude-plugin/README.md#privacy",
+  "termsOfServiceUrl": "https://trustabl.ai/terms/"
+}
